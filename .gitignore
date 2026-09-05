@@ -71,3 +71,4 @@ logs/
 *.key
 *.pem
 secrets.json
+yolo8x-worldv2.pt
