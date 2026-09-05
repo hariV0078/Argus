@@ -9,6 +9,7 @@ data/odm_dataset/
 data/
 
 # Model weights
+*.pt
 weights/
 tools/sam2_weights/
 tools/yolo_weights/
