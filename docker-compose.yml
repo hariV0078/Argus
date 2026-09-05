@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  odm:
+    image: opendronemap/odm
+    container_name: odm_processor
+    volumes:
+      - ./data/raw:/datasets/raw:ro
+      - ./data/output:/datasets/output
+    # Usage: docker compose run --rm odm --project-path /datasets/output <options>
+    # Example: docker compose run --rm odm \
+    #   --project-path /datasets/output \
+    #   --video-limit 1 \
+    #   --fast-orthophoto \
+    #   --max-concurrency 4
+    entrypoint: ["python3", "/code/run.py"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

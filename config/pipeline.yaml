@@ -1,0 +1,68 @@
+# SIH26158 — Single-Pass Drone Video to 3D Model
+# Pipeline configuration — tune per dataset
+
+# ── Input ─────────────────────────────────────
+input:
+  video_path: data/raw/drone_video.mp4
+  gps_csv: data/raw/gps_track.csv       # columns: timestamp_ms, lat, lon, alt_m
+  imu_csv: data/raw/imu_data.csv        # optional; columns: timestamp_ms, roll, pitch, yaw
+  camera_intrinsics:                    # optional; leave null to let COLMAP estimate
+    fx: null
+    fy: null
+    cx: null
+    cy: null
+    k1: null
+    k2: null
+
+# ── Frame Extraction (Phase 1) ─────────────────
+extraction:
+  target_fps: 3            # extract 3 fps from video (dense enough for SfM)
+  blur_threshold: 80       # Laplacian variance; discard frames below this
+  min_frame_interval_m: 0.5 # skip frames < 0.5 m apart (GPS-gated)
+  output_dir: data/frames
+
+# ── Dynamic Object Masking (Phase 3) ──────────
+masking:
+  yolo_weights: tools/yolo_weights/yolov8x-seg.pt
+  sam2_weights: tools/sam2_weights/sam2.1_hiera_large.pt
+  sam2_config: sam2_hiera_l.yaml
+  classes_to_mask: [0, 1, 2, 3, 5, 7]   # person, bicycle, car, motorbike, bus, truck
+  confidence_threshold: 0.4
+  mask_dilation_px: 5
+  output_dir: data/masks
+
+# ── SfM — COLMAP (Phase 2) ─────────────────────
+colmap:
+  workspace: data/sfm
+  use_gpu: true
+  max_image_size: 3200     # resize long edge if larger (memory/speed tradeoff)
+  matcher: sequential      # sequential|exhaustive|vocab_tree — sequential for video
+  sequential_overlap: 10   # frames overlap window
+  ba_global_max_refinements: 5
+  camera_model: OPENCV     # supports k1,k2 distortion
+
+# ── MVS — OpenMVS (Phase 2) ──────────────────
+openmvs:
+  bin_dir: tools/OpenMVS/bin
+  workspace: data/mvs
+  densify_resolution_level: 1   # 0=full, 1=half — balance speed/density
+  mesh_decimate_ratio: 0.5
+  texture_size: 8192
+
+# ── Georeferencing (Phase 4) ──────────────────
+georeference:
+  epsg: 32644              # UTM zone for India (adjust by flight area)
+  gps_accuracy_m: 3.0      # assumed GPS error for weighting
+  use_imu: true
+
+# ── Export (Phase 6) ─────────────────────────
+export:
+  output_dir: data/output
+  formats: [obj, ply, las, geotiff, glb]
+  geotiff_resolution_m: 0.1    # GSD target
+
+# ── Performance ───────────────────────────────
+performance:
+  n_threads: 8
+  gpu_memory_limit_gb: 7.0    # leave 1 GB headroom on RTX 5070 (8 GB VRAM)
+  target_pipeline_minutes: 15  # SIH target for 10-min video
