@@ -1,146 +1,131 @@
-## ARGUS
-Single-pass drone video to georeferenced 3D model pipeline. Submits to a FastAPI server, processes via COLMAP + AI segmentation, and serves outputs for mobile/web visualization.
+# Argus — Single-Pass Drone Video → Georeferenced 3D Model
 
-**Built for:** National Technical Research Organisation · SIH 2026
+SIH 2026 PS #17 (National Technical Research Organisation). Monorepo: a Python reconstruction backend, an Expo/React Native mobile client, and a React web client, kept as sibling folders so every half of the submission lives in one place.
 
----
-
-## What it produces
-
-| Output | Format | Description |
-|--------|--------|-------------|
-| `mesh/model.glb` | GLB | 3D mesh — mobile/web viewer ready |
-| `mesh/model.obj` | OBJ | 3D mesh — Blender/MeshLab |
-| `mesh/model.fbx` | FBX | 3D mesh — Unity/Unreal |
-| `pointcloud/dense.ply` | PLY | 655K-point cloud (ECEF) |
-| `pointcloud/dense_labelled.ply` | PLY | Semantic colour-coded point cloud |
-| `geotiff/dsm.tif` | GeoTIFF | Digital surface model (UTM, ~750 MB) |
-
----
-
-## Hardware
-
-- GPU: **RTX 5070 Laptop / 8 GB VRAM** (CUDA 12.8)
-- OS: Ubuntu 22.04 / WSL2
-- RAM: 32 GB recommended
-- Disk: 50 GB free per run (SfM workspace is large)
-
-EC2 equivalent: `g5.2xlarge` (A10G 24 GB, $0.37/hr spot)
-
----
-
-## Setup
-
-```bash
-# 1. Create conda environment
-conda create -n recon python=3.10 -y
-conda activate recon
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Download weights
-bash scripts/download_weights.sh
-
-# 4. Verify setup
-bash verify_setup.sh
-# Expected: 27 passed, 0 failed
+```
+SIH_26_Internal/
+├── backend/       FastAPI + COLMAP + AI segmentation pipeline (Python)
+├── frontend/      Argus mobile app — job submission, live logs, 3D viewer (Expo/React Native)
+└── frontend_web/  Argus web app — the same client, in the browser (React + Vite + TypeScript)
 ```
 
+- Backend details: [`backend/README.md`](backend/README.md) · [`backend/ARCHITECTURE.md`](backend/ARCHITECTURE.md) · [`backend/TESTING.md`](backend/TESTING.md)
+- Mobile frontend details: [`frontend/README.md`](frontend/README.md) · [`frontend/TESTING.md`](frontend/TESTING.md)
+- Web frontend details: [`frontend_web/README.md`](frontend_web/README.md)
+- Presenting to the jury: **[`DEMO.md`](DEMO.md)** — pre-demo checklist, live script, fallback plan
+
+## Repository setup
+
+Clone the repository and install each component independently:
+
+```bash
+git clone https://github.com/hariV0078/Argus.git
+cd SIH_26_Internal
+
+# Backend environment and dependencies
+cd backend
+conda env create -f environment.yml
+conda activate recon
+./setup.sh
+
+# Mobile app
+cd ../frontend
+npm install
+
+# Browser app
+cd ../frontend_web
+npm install
+```
+
+The backend, mobile app, and web app are intentionally separate projects. The
+backend owns reconstruction and the API; both frontends consume that API. See
+the component README files linked above for platform-specific requirements and
+test commands.
+
+### What is tracked
+
+Application source, configuration, documentation, lockfiles, sample assets,
+and `.env.example` files are intended to be committed. Local `.env` files,
+`node_modules`, Python environments, downloaded model weights, and generated
+reconstruction data under `backend/data/` are ignored by the root `.gitignore`.
+Keep large source datasets and generated point clouds in external storage rather
+than committing them to the application repository.
+
 ---
 
-## Run
+## How the two connect
 
-### Start the server
+```
+Argus (phone, Expo Go)  ──HTTP/WS──►  FastAPI backend :8765  ──►  COLMAP + YOLO/SAM2
+  New Scan / Jobs / Viewer                 src/viewer/server.py       src/{ingestion,reconstruction,segmentation}/
+```
+
+The app is a thin client — it submits jobs, polls/streams status, and renders whatever mesh/point-cloud/GeoTIFF the backend produces. It never runs reconstruction locally (it does ship an **offline demo mode** with a sample mesh, so the flow can be shown without a live backend).
+
+Backend URL is not hardcoded — it's entered on the app's Home/Settings screen at runtime, or pre-filled at build time via `frontend/.env` (see `frontend/.env.example`).
+
+`frontend_web/` is the same idea in a browser tab: same screens (Home, New Scan, Jobs, Outputs, mesh/point-cloud/map viewers), same REST + WebSocket API, same backend — **no backend changes were needed**, since CORS on the FastAPI app is already wide open. Run it with `cd frontend_web && npm install && npm run dev`, then set Backend URL on Home the same way. See [`frontend_web/README.md`](frontend_web/README.md).
+
+## Run both
+
+**1. Backend** (from `backend/`) — via the reserved ngrok tunnel (recommended, see below):
+```bash
+cp .env.example .env   # fill in NGROK_AUTHTOKEN, once
+conda run -n recon python3 scripts/start_ngrok.py
+```
+This starts uvicorn **and** exposes it at the fixed public URL `https://sound-guiding-mammoth.ngrok-free.app` in one go. Plain local run (no tunnel):
 ```bash
 conda run -n recon python3 -m uvicorn src.viewer.server:app --host 0.0.0.0 --port 8765
 ```
+Full setup: [`backend/README.md`](backend/README.md#setup).
 
-### Submit a job (video)
+**2. Frontend** (from `frontend/`):
 ```bash
-curl -X POST http://localhost:8765/api/pipeline/run \
-  -H "Content-Type: application/json" \
-  -d '{"video_path": "data/raw/drone.MOV", "fps": 3.0, "utm_epsg": 32644, "auto_clean": true}'
+npm install
+npx expo start
 ```
+Scan the QR with Expo Go — with the ngrok tunnel running, the phone can be on **any** network, not just the backend host's Wi-Fi.
 
-### Submit a job (pre-extracted frames)
-```bash
-curl -X POST http://localhost:8765/api/pipeline/run \
-  -H "Content-Type: application/json" \
-  -d '{"video_path": "data/raw/drone.MOV", "skip_ingestion": true, "utm_epsg": 32615, "auto_clean": true}'
-```
+**3. Point the app at the backend.** On Home, set Backend URL to `https://sound-guiding-mammoth.ngrok-free.app` and tap Connect (this is also `frontend/.env.example`'s default). Skip this step entirely if `frontend/.env` already has it.
 
-### Check job status
-```bash
-curl http://localhost:8765/api/pipeline/jobs/{JOB_ID}
-```
+### ngrok tunnel
 
-### Stream logs live
-```bash
-wscat -c ws://localhost:8765/ws/{JOB_ID}
-```
+- Fixed public URL: **`https://sound-guiding-mammoth.ngrok-free.app`** → forwards to `localhost:8765`.
+- Auth token lives in `backend/.env` (`NGROK_AUTHTOKEN`, gitignored) — never commit it. Get one at https://dashboard.ngrok.com/get-started/your-authtoken.
+- `backend/scripts/start_ngrok.py` reads `backend/.env` and opens the tunnel via `pyngrok`; pass `--no-server` if uvicorn is already running separately.
+- Free-tier ngrok shows an HTML warning page to browser-like requests; the app sends `ngrok-skip-browser-warning` on every call (`frontend/src/api/client.ts`) so this is transparent.
 
-### Download outputs
-```bash
-curl -OJ http://localhost:8765/api/outputs/download/mesh/model.glb
-curl -OJ http://localhost:8765/api/outputs/download/pointcloud/dense_labelled.ply
-```
+### LAN alternative (no tunnel)
 
-API docs: **http://localhost:8765/docs**
+Same-Wi-Fi only, and only if you'd rather not run ngrok:
 
----
+**3′.** On Home, set Backend URL to `http://<workstation-lan-ip>:8765` and tap Connect.
 
-## Pipeline
+> **WSL2 note:** this backend is developed under WSL2. The IP from `hostname -I` inside WSL2 is usually *not* reachable from a phone on the LAN (WSL2 NAT). Use the **Windows host's** LAN IP (`ipconfig`), ensure port 8765 is allowed through Windows Firewall / forwarded into WSL2, or enable WSL2 mirrored networking (Windows 11 23H2+) so the WSL2 and Windows IPs match. This is exactly what the ngrok tunnel above avoids.
 
-```
-Video + GPS
-  → Frame extraction + blur filter        (ffmpeg)
-  → Dynamic masking                        (YOLOv8x-seg)
-  → Structure from Motion                  (COLMAP GPU)
-  → Dense reconstruction                   (patch-match stereo)
-  → Mesh + point cloud + GeoTIFF export
-  → Semantic segmentation                  (YOLO-World + SAM2)
-  → 2D→3D label projection
-```
+### Logging
 
-Full details: [`ARCHITECTURE.md`](ARCHITECTURE.md)
+The backend logs to both the console (INFO+) and a rotating file at
+`backend/data/logs/backend.log` (DEBUG+, includes every pipeline log line —
+durable even if no one was watching the WebSocket at the time). One line per
+HTTP request (method, path, status, timing) plus job lifecycle events
+(created / phase start-finish / completed / failed / cancelled). See
+`backend/src/viewer/logging_config.py`.
 
----
+## API surface
 
-## Runtime (RTX 5070 Laptop, 8 GB VRAM)
+See [`backend/ARCHITECTURE.md`](backend/ARCHITECTURE.md#api-surface) for the full list; the frontend uses:
 
-| Input | Time |
-|-------|------|
-| 18 frames (test dataset) | ~8 min |
-| 50 frames | ~15–20 min |
-| 100 frames @ 1080p | ~35–50 min |
-| 10-min video @ 3 fps | ~60–90 min |
+| Method | Path | Purpose |
+|--------|------|---------|
+| `POST` | `/api/pipeline/run` | Submit a job |
+| `GET` | `/api/pipeline/jobs/{id}` | Job status |
+| `WS` | `/ws/{id}` | Live log stream |
+| `GET` | `/api/outputs` | List every run's outputs, grouped by job (mesh / point cloud / GeoTIFF) |
+| `GET` | `/api/outputs/download/{job_id}/{cat}/{file}` | Download a file from one run |
 
----
+## Status
 
-## Project structure
-
-```
-src/
-  ingestion/       frame extraction, telemetry parsing, EXIF geotagging
-  reconstruction/  COLMAP SfM + MVS + export (OBJ/GLB/FBX/LAS/GeoTIFF)
-  segmentation/    dynamic masking, semantic segmentation, label projection
-  viewer/          FastAPI server, job queue, WebSocket log stream
-data/
-  raw/             input video
-  frames/          extracted + geotagged JPEGs
-  sfm/             COLMAP workspace (auto-cleaned between runs)
-  output/          final outputs served by API
-tools/
-  blender/         Blender 4.2 LTS portable (GLB/FBX export)
-  sam2_weights/    SAM2 model weights
-  yolo_weights/    YOLOv8 model weights
-```
-
----
-
-## Docs
-
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) — pipeline and API reference
-- [`TESTING.md`](TESTING.md) — backend API test commands
-- [`FRONTEND.md`](FRONTEND.md) — mobile app spec (React Native + Expo)
+- Backend: ingestion, reconstruction, and segmentation phases complete (see `backend`'s memory notes / phase log); viewer/API phase in progress.
+- Mobile frontend: cloned from [Ashwinram005/Argus](https://github.com/Ashwinram005/Argus) — implements the mobile client spec that used to live at `backend/FRONTEND.md` (now superseded by this real app).
+- Web frontend (`frontend_web/`): React + Vite port of the mobile client's screens, talking to the same backend API. No backend changes required.

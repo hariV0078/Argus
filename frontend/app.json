@@ -1,0 +1,64 @@
+{
+  "expo": {
+    "name": "Argus",
+    "slug": "argus",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "argus",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Capture a single-pass drone or flight video for 3D reconstruction.",
+        "NSMicrophoneUsageDescription": "Record audio with captured flight video.",
+        "NSPhotoLibraryUsageDescription": "Select a drone video from your library."
+      }
+    },
+    "android": {
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "backgroundColor": "#081210",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#081210"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Argus to access drone videos.",
+          "cameraPermission": "Allow Argus to capture flight video.",
+          "microphonePermission": "Allow microphone for flight video."
+        }
+      ],
+      "expo-document-picker",
+      "expo-av",
+      "react-native-maps"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

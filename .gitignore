@@ -1,75 +1,171 @@
-# Data & outputs (large binary files)
-data/raw/
-data/frames/
-data/masks/
-data/semantic/
-data/sfm/
-data/output/
-data/odm_dataset/
-data/
+# Argus monorepo root ignore rules
+# Keep application source, configuration, documentation, and frontend assets
+# trackable. Ignore machine-local, generated, secret, and very large artifacts.
 
-# Model weights
-*.pt
-weights/
-tools/sam2_weights/
-tools/yolo_weights/
-tools/blender/
-tools/
+# -----------------------------------------------------------------------------
+# Operating system and editor files
+# -----------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*.swn
+*.tmp
+*.bak
+*~
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
 
-# Python
+# -----------------------------------------------------------------------------
+# Secrets and local configuration
+# -----------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.local
+*.secret
+*.secrets
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+secrets.json
+credentials.json
+
+# -----------------------------------------------------------------------------
+# Python and backend tooling
+# -----------------------------------------------------------------------------
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
+*$py.class
 .Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
 *.egg-info/
-dist/
-build/
-.eggs/
 *.egg
+*.whl
+build/
+dist/
+.eggs/
+pip-wheel-metadata/
 
-# Virtual envs & conda
-.env
-.venv
-env/
+# Virtual environments and local Conda environments
+.venv/
 venv/
-*.conda
+env/
+ENV/
+*.conda/
 conda-meta/
 envs/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-.DS_Store
-Thumbs.db
+# -----------------------------------------------------------------------------
+# Backend runtime data and generated reconstruction artifacts
+# -----------------------------------------------------------------------------
+/backend/data/raw/
+/backend/data/frames/
+/backend/data/masks/
+/backend/data/semantic/
+/backend/data/sfm/
+/backend/data/mvs/
+/backend/data/output/
+/backend/data/logs/
+/backend/data/odm_dataset/
+/backend/data/**/*.db
+/backend/data/**/*.sqlite
+/backend/data/**/*.sqlite3
+/backend/data/**/*.ply
+/backend/data/**/*.las
+/backend/data/**/*.laz
+/backend/data/**/*.tif
+/backend/data/**/*.tiff
+/backend/data/**/*.glb
+/backend/data/**/*.fbx
+/backend/data/**/*.obj
+/backend/data/**/*.mtl
+/backend/data/**/*.bin
+/backend/data/**/*.jpg
+/backend/data/**/*.jpeg
+/backend/data/**/*.png
+/backend/data/**/*.mov
+/backend/data/**/*.mp4
+/backend/data/**/*.avi
 
-# Jupyter
+# Preserve small, intentional directory placeholders.
+!/backend/data/**/.gitkeep
+
+# Model weights and other downloaded/vendor binaries. Keep source code and
+# configuration under backend/tools/ and backend/weights/ trackable.
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.ckpt
+/backend/weights/
+/backend/tools/sam2_weights/
+/backend/tools/yolo_weights/
+/backend/tools/OpenMVS/build/
+
+# -----------------------------------------------------------------------------
+# Node, Expo, React Native, and Vite outputs
+# -----------------------------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.npm/
+.yarn/
+.pnp.*
+.expo/
+.expo-shared/
+.metro-health-check*
+.parcel-cache/
+.turbo/
+.cache/
+web-build/
+/frontend/dist/
+/frontend_web/dist/
+/frontend_web/dist-ssr/
+/frontend/ios/
+/frontend/android/
+*.tsbuildinfo
+
+# Native signing and generated mobile build files
+*.mobileprovision
+*.orig.*
+
+# -----------------------------------------------------------------------------
+# Notebooks, logs, reports, and temporary exports
+# -----------------------------------------------------------------------------
 .ipynb_checkpoints/
-*.ipynb
-
-# Logs & temp
 *.log
-*.tmp
-tmp/
 logs/
+tmp/
+temp/
+*.prof
+*.sqlite
+*.sqlite3
+*.db-journal
 
-# Large binary formats
-*.ply
-*.las
-*.laz
-*.tif
-*.tiff
-*.glb
-*.fbx
-*.obj
-*.mtl
-*.bin
+# Archives and downloaded datasets
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar
+*.iso
+*.weights
 
-# Secrets
-.env.local
-*.key
-*.pem
-secrets.json
-yolo8x-worldv2.pt
+# Windows alternate data streams accidentally copied into the repository
+*:Zone.Identifier

@@ -1,0 +1,75 @@
+# Data & outputs (large binary files)
+data/raw/
+data/frames/
+data/masks/
+data/semantic/
+data/sfm/
+data/output/
+data/odm_dataset/
+data/
+
+# Model weights
+*.pt
+weights/
+tools/sam2_weights/
+tools/yolo_weights/
+tools/blender/
+tools/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual envs & conda
+.env
+.venv
+env/
+venv/
+*.conda
+conda-meta/
+envs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Logs & temp
+*.log
+*.tmp
+tmp/
+logs/
+
+# Large binary formats
+*.ply
+*.las
+*.laz
+*.tif
+*.tiff
+*.glb
+*.fbx
+*.obj
+*.mtl
+*.bin
+
+# Secrets
+.env.local
+*.key
+*.pem
+secrets.json
+yolo8x-worldv2.pt
